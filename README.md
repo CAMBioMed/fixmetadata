@@ -1,4 +1,7 @@
 # Fix Metadata
+Fixes the metadata on photos to allow them to be displayed and used properly on CoralNet.
+
+
 
 ## Prerequisites
 Python and UV.
@@ -20,3 +23,7 @@ Specify `fix` followed by the directories to fix. Then specify the output direct
 ```shell
 uv run fixmetadata.py fix ~/Documents/MyPhotos --output-dir ~/Documents/MyPhotosFixed 
 ```
+
+
+## Technical details
+This script overwrites the `PixelXDimension` and `PixelYDimension` EXIF fields to match the actual width and height of the image.
