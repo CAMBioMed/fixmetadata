@@ -1,4 +1,6 @@
+import os
 import shutil
+from pathlib import Path
 
 import click
 import piexif
@@ -10,22 +12,49 @@ def cli():
 
 
 @cli.command()
+@click.option(
+    "--output-dir",
+    "-o",
+    required=True,
+    type=click.Path(file_okay=False, dir_okay=True, path_type=str),
+    help="Directory where fixed files are written.",
+)
 @click.argument("filenames", nargs=-1, required=True)
-def fix(filenames):
-    """Fix metadata for one or more files."""
+def fix(output_dir, filenames):
+    """Fix metadata for one or more files or directories."""
+    os.makedirs(output_dir, exist_ok=True)
+
+    worklist = []
     for filename in filenames:
-        click.echo(f"Fixing metadata for: {filename}")
+        if os.path.isdir(filename):
+            worklist.extend(
+                os.path.join(filename, f)
+                for f in os.listdir(filename)
+                if os.path.isfile(os.path.join(filename, f))
+            )
+        else:
+            worklist.append(filename)
+
+    for filename in worklist:
+        click.echo(f"Reading metadata for: {filename}")
         img = Image.open(filename)
         w = img.width
         h = img.height
 
         exif_dict = piexif.load(filename)
 
+        curr_w = exif_dict["Exif"][piexif.ExifIFD.PixelXDimension]
+        curr_h = exif_dict["Exif"][piexif.ExifIFD.PixelYDimension]
+
+        if curr_w == w and curr_h == h:
+            click.echo(f"Skipped. Metadata already correct for: {filename}")
+            continue
+
         exif_dict["Exif"][piexif.ExifIFD.PixelXDimension] = w
         exif_dict["Exif"][piexif.ExifIFD.PixelYDimension] = h
 
-        # Copy the original file to the new filename
-        new_filename = filename.rsplit(".", 1)[0] + "_fixed.jpg"
+        # Preserve original filename in the chosen output directory.
+        new_filename = os.path.join(output_dir, os.path.basename(filename))
         shutil.copy2(filename, new_filename)
 
         exif_bytes = piexif.dump(exif_dict)
