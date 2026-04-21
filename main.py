@@ -1,13 +1,17 @@
 import os
 import shutil
 from pathlib import Path
+from typing import Any, TypeAlias
 
 import click
 import piexif
 from PIL import Image
 
+WorkItem: TypeAlias = tuple[str, str]
+ExifDict: TypeAlias = dict[str, Any]
+
 @click.group()
-def cli():
+def cli() -> None:
     pass
 
 
@@ -28,14 +32,14 @@ def cli():
     help="Recursively include JPEG files from subdirectories.",
 )
 @click.argument("filenames", nargs=-1, required=True)
-def fix(output_dir, recursive, filenames):
+def fix(output_dir: str, recursive: bool, filenames: tuple[str, ...]) -> None:
     """Fix metadata for one or more files or directories."""
     os.makedirs(output_dir, exist_ok=True)
 
-    def is_jpeg_file(path):
+    def is_jpeg_file(path: str) -> bool:
         return os.path.isfile(path) and Path(path).suffix.lower() in {".jpg", ".jpeg"}
 
-    worklist = []
+    worklist: list[WorkItem] = []
     for filename in filenames:
         if os.path.isdir(filename):
             if recursive:
@@ -54,30 +58,36 @@ def fix(output_dir, recursive, filenames):
         elif is_jpeg_file(filename):
             worklist.append((os.path.dirname(filename) or ".", os.path.basename(filename)))
 
-    fixed_count = 0
-    skipped_count = 0
-    error_count = 0
+    fixed_count: int = 0
+    skipped_count: int = 0
+    error_count: int = 0
 
     for root_dir, relative_path in worklist:
-        filename = os.path.join(root_dir, relative_path)
-        name = relative_path
+        filename: str = os.path.join(root_dir, relative_path)
+        name: str = relative_path
         try:
-            img = Image.open(filename)
-            w = img.width
-            h = img.height
+            img: Image.Image = Image.open(filename)
+            w: int = img.width
+            h: int = img.height
 
             try:
-                exif_dict = piexif.load(filename)
+                exif_dict: ExifDict = piexif.load(filename)
             except Exception:
                 click.echo(f"{name}: ERROR: No readable EXIF data")
                 error_count += 1
                 continue
 
-            new_filename = os.path.join(output_dir, relative_path)
+            new_filename: str = os.path.join(output_dir, relative_path)
             os.makedirs(os.path.dirname(new_filename), exist_ok=True)
             shutil.copy2(filename, new_filename)
 
-            exif_section = exif_dict.get("Exif") or {}
+            exif_section_obj: Any = exif_dict.get("Exif") or {}
+            if not isinstance(exif_section_obj, dict):
+                click.echo(f"{name}: Skipped, no metadata to correct")
+                skipped_count += 1
+                continue
+
+            exif_section: dict[int, Any] = exif_section_obj
             if (
                 piexif.ExifIFD.PixelXDimension not in exif_section
                 or piexif.ExifIFD.PixelYDimension not in exif_section
@@ -86,8 +96,8 @@ def fix(output_dir, recursive, filenames):
                 skipped_count += 1
                 continue
 
-            curr_w = exif_section[piexif.ExifIFD.PixelXDimension]
-            curr_h = exif_section[piexif.ExifIFD.PixelYDimension]
+            curr_w: int = int(exif_section[piexif.ExifIFD.PixelXDimension])
+            curr_h: int = int(exif_section[piexif.ExifIFD.PixelYDimension])
 
             if curr_w == w and curr_h == h:
                 click.echo(f"{name}: Skipped, metadata was already correct")
