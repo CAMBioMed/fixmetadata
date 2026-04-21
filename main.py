@@ -20,7 +20,9 @@ def cli():
     help="Directory where fixed files are written.",
 )
 @click.option(
-    "--recursive/--no-recursive",
+    "--recursive",
+    "-r",
+    is_flag=True,
     default=False,
     show_default=True,
     help="Recursively include JPEG files from subdirectories.",
@@ -79,7 +81,7 @@ def fix(output_dir, recursive, filenames):
                 piexif.ExifIFD.PixelXDimension not in exif_section
                 or piexif.ExifIFD.PixelYDimension not in exif_section
             ):
-                click.echo(f"{name}: Skipped, as it has no metadata to correct")
+                click.echo(f"{name}: Skipped, no metadata to correct")
                 skipped_count += 1
                 continue
 
@@ -87,7 +89,7 @@ def fix(output_dir, recursive, filenames):
             curr_h = exif_section[piexif.ExifIFD.PixelYDimension]
 
             if curr_w == w and curr_h == h:
-                click.echo(f"{name}: Skipped, as the metadata was already correct")
+                click.echo(f"{name}: Skipped, metadata was already correct")
                 skipped_count += 1
                 continue
 
