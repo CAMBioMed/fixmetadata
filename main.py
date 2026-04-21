@@ -19,8 +19,14 @@ def cli():
     type=click.Path(file_okay=False, dir_okay=True, path_type=str),
     help="Directory where fixed files are written.",
 )
+@click.option(
+    "--recursive/--no-recursive",
+    default=False,
+    show_default=True,
+    help="Recursively include JPEG files from subdirectories.",
+)
 @click.argument("filenames", nargs=-1, required=True)
-def fix(output_dir, filenames):
+def fix(output_dir, recursive, filenames):
     """Fix metadata for one or more files or directories."""
     os.makedirs(output_dir, exist_ok=True)
 
@@ -30,11 +36,19 @@ def fix(output_dir, filenames):
     worklist = []
     for filename in filenames:
         if os.path.isdir(filename):
-            worklist.extend(
-                os.path.join(filename, f)
-                for f in os.listdir(filename)
-                if is_jpeg_file(os.path.join(filename, f))
-            )
+            if recursive:
+                for root, _, files in os.walk(filename):
+                    worklist.extend(
+                        os.path.join(root, f)
+                        for f in files
+                        if is_jpeg_file(os.path.join(root, f))
+                    )
+            else:
+                worklist.extend(
+                    os.path.join(filename, f)
+                    for f in os.listdir(filename)
+                    if is_jpeg_file(os.path.join(filename, f))
+                )
         elif is_jpeg_file(filename):
             worklist.append(filename)
 
