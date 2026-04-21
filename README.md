@@ -4,9 +4,8 @@ Fixes the metadata on photos to allow them to be displayed and used properly on 
 
 
 ## Prerequisites
-Python and UV.
-
-Python is most likely already installed. See [this page](https://docs.astral.sh/uv/getting-started/installation/) for UV installation instructions.
+- Python
+- UV ([how to install](https://docs.astral.sh/uv/getting-started/installation/))
 
 
 ## Running
