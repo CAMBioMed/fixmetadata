@@ -38,6 +38,10 @@ def fix(output_dir, filenames):
         elif is_jpeg_file(filename):
             worklist.append(filename)
 
+    fixed_count = 0
+    skipped_count = 0
+    error_count = 0
+
     for filename in worklist:
         img = Image.open(filename)
         w = img.width
@@ -47,6 +51,7 @@ def fix(output_dir, filenames):
             exif_dict = piexif.load(filename)
         except Exception:
             click.echo(f"Error. No readable EXIF data for: {filename}")
+            error_count += 1
             continue
 
         # Preserve original filename in the chosen output directory.
@@ -59,6 +64,7 @@ def fix(output_dir, filenames):
             or piexif.ExifIFD.PixelYDimension not in exif_section
         ):
             click.echo(f"Skipped. Metadata not found for: {filename}, copied to {new_filename}")
+            skipped_count += 1
             continue
 
         curr_w = exif_section[piexif.ExifIFD.PixelXDimension]
@@ -66,6 +72,7 @@ def fix(output_dir, filenames):
 
         if curr_w == w and curr_h == h:
             click.echo(f"Skipped. Metadata already correct for: {filename}, copied to {new_filename}")
+            skipped_count += 1
             continue
 
         exif_dict["Exif"][piexif.ExifIFD.PixelXDimension] = w
@@ -74,7 +81,13 @@ def fix(output_dir, filenames):
         exif_bytes = piexif.dump(exif_dict)
         piexif.insert(exif_bytes, new_filename)
 
+        fixed_count += 1
         click.echo(f"Fixed metadata for: {filename}, written to {new_filename}")
+
+    click.echo(
+        "Summary: "
+        f"total={len(worklist)}, fixed={fixed_count}, skipped={skipped_count}, errors={error_count}"
+    )
 
 if __name__ == "__main__":
     cli()
