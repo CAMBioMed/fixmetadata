@@ -24,15 +24,18 @@ def fix(output_dir, filenames):
     """Fix metadata for one or more files or directories."""
     os.makedirs(output_dir, exist_ok=True)
 
+    def is_jpeg_file(path):
+        return os.path.isfile(path) and Path(path).suffix.lower() in {".jpg", ".jpeg"}
+
     worklist = []
     for filename in filenames:
         if os.path.isdir(filename):
             worklist.extend(
                 os.path.join(filename, f)
                 for f in os.listdir(filename)
-                if os.path.isfile(os.path.join(filename, f))
+                if is_jpeg_file(os.path.join(filename, f))
             )
-        else:
+        elif is_jpeg_file(filename):
             worklist.append(filename)
 
     for filename in worklist:
