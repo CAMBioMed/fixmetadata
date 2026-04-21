@@ -1,3 +1,12 @@
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#     "click>=8.3.2",
+#     "piexif>=1.1.3",
+#     "pillow>=12.2.0",
+# ]
+# ///
+
 import os
 import shutil
 from pathlib import Path
