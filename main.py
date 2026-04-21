@@ -41,25 +41,26 @@ def fix(output_dir, recursive, filenames):
             if recursive:
                 for root, _, files in os.walk(filename):
                     worklist.extend(
-                        os.path.join(root, f)
+                        (filename, os.path.relpath(os.path.join(root, f), filename))
                         for f in files
                         if is_jpeg_file(os.path.join(root, f))
                     )
             else:
                 worklist.extend(
-                    os.path.join(filename, f)
+                    (filename, f)
                     for f in os.listdir(filename)
                     if is_jpeg_file(os.path.join(filename, f))
                 )
         elif is_jpeg_file(filename):
-            worklist.append(filename)
+            worklist.append((os.path.dirname(filename) or ".", os.path.basename(filename)))
 
     fixed_count = 0
     skipped_count = 0
     error_count = 0
 
-    for filename in worklist:
-        name = os.path.basename(filename)
+    for root_dir, relative_path in worklist:
+        filename = os.path.join(root_dir, relative_path)
+        name = relative_path
         try:
             img = Image.open(filename)
             w = img.width
@@ -72,8 +73,8 @@ def fix(output_dir, recursive, filenames):
                 error_count += 1
                 continue
 
-            # Preserve original filename in the chosen output directory.
-            new_filename = os.path.join(output_dir, os.path.basename(filename))
+            new_filename = os.path.join(output_dir, relative_path)
+            os.makedirs(os.path.dirname(new_filename), exist_ok=True)
             shutil.copy2(filename, new_filename)
 
             exif_section = exif_dict.get("Exif") or {}
